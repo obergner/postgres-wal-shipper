@@ -5,3 +5,4 @@
 /.nrepl-port
 /profiles.clj
 /token.sec
+/data/*

@@ -1,6 +1,8 @@
 # Include configuration from config.env
 include config.env
 
+DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
 # Define application name
 APP_NAME := "postgres-wal-shipper"
 
@@ -53,6 +55,14 @@ up: build run ## Run container on port configured in `config.env` (Alias to run)
 
 stop: ## Stop and remove a running container
 	@docker stop $(APP_NAME); docker rm $(APP_NAME)
+
+# Start/stop Postgresql DB
+
+start-pg:
+	@docker run -i -t --rm \
+          -v $(DIR)/data:/var/lib/postgresql/data \
+          --name=postgres-wal-shipper-db \
+          postgres:10.1-alpine
 
 # HELPERS
 
