@@ -9,6 +9,9 @@ APP_NAME := "postgres-wal-shipper"
 # Grep version from project.clj
 VERSION := $(shell ./version.sh)
 
+# Read our secret Postgres password from profiles.clj
+POSTGRES_PASSWORD := $(shell cat profiles.clj | sed -n 's/.*:postgres-password "\(.*\)".*/\1/p')
+
 # Default goal 
 .DEFAULT_GOAL := build
 
@@ -61,6 +64,8 @@ stop: ## Stop and remove a running container
 start-pg:
 	@docker run -i -t --rm \
           -v $(DIR)/data:/var/lib/postgresql/data \
+					--env-file=./config.env \
+					--env=POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
           --name=postgres-wal-shipper-db \
           postgres:10.1-alpine
 

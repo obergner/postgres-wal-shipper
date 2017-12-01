@@ -27,7 +27,9 @@
              "Git-Branch" ~#(clojure.string/trim (:out (clojure.java.shell/sh "git" "rev-parse" "--abbrev-ref" "HEAD") %))
              "Git-Commit" ~#(clojure.string/trim (:out (clojure.java.shell/sh "git" "rev-parse" "HEAD") %))
              "Git-Dirty" ~#(str (not (empty? (clojure.string/trim (:out (clojure.java.shell/sh "git" "status" "--porcelain") %)))))}
-  :env {:kafka-hosts "localhost"
+  :env {:postgres-user "walshipper"
+        :postgres-password "secret"
+        :kafka-hosts "localhost"
         :management-api-port "3100"}
   :profiles {:dev [:dev-public :dev-private]
              :dev-public {:source-paths ["profiles/dev/src"]
@@ -38,7 +40,8 @@
                           :repl-options {:init-ns user}
                           :injections [(require 'pjstadig.humane-test-output)
                                        (pjstadig.humane-test-output/activate!)]
-                          :env {:kafka-hosts "localhost"
+                          :env {:postgres-user "walshipper"
+                                :kafka-hosts "localhost"
                                 :management-api-port "2200"}}
              :dev-private {:env {}}
              :test {:resource-paths ["test-resources"]}
