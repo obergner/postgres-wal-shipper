@@ -1,5 +1,5 @@
 # Define application name
-IMAGE_NAME := "postgresql-jsoncdc"
+IMAGE_NAME := "postgres-jsoncdc"
 
 # Define Postgresql version to use
 PG_VERSION := "10.1"

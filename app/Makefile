@@ -12,6 +12,8 @@ APP_VERSION := $(shell ./version.sh)
 # Read our secret Postgres password from project.clj
 PG_PASSWORD := $(shell cat project.clj | sed -n 's/.*:dbpassword "\(.*\)".*/\1/p')
 
+PG_IMAGE := "postgres-jsoncdc:10.1"
+
 PG_CONTAINER_NAME := "postgres-wal-shipper-db"
 
 # Default goal 
@@ -70,7 +72,7 @@ start-db:
 					--env=POSTGRES_PASSWORD=$(PG_PASSWORD) \
           --publish=5432:5432 \
           --name=$(PG_CONTAINER_NAME) \
-          postgresql-jsoncdc:10.1
+          $(PG_IMAGE)
 
 start-db-foreground: 
 	@docker run -i -t --rm \
@@ -78,7 +80,7 @@ start-db-foreground:
 					--env=POSTGRES_PASSWORD=$(PG_PASSWORD) \
           --publish=5432:5432 \
           --name=$(PG_CONTAINER_NAME) \
-          postgresql-jsoncdc:10.1
+          $(PG_IMAGE)
 
 stop-db: 
 	@docker stop $(PG_CONTAINER_NAME)

@@ -63,7 +63,7 @@ Enjoy
 
 (defn do-start-db
   [dbconf]
-  (let [startup-ms 5000]
+  (let [startup-ms 6000]
     (log/infof "START: Postgresql Docker container using [%s] - waiting for [%d] ms for the container to start ..."
                dbconf startup-ms)
     (shell/sh "docker"
@@ -75,7 +75,7 @@ Enjoy
               (format "--env=POSTGRES_PASSWORD=%s" (:password dbconf))
               "--publish=5432:5432"
               "--name=postgres-wal-shipper-db"
-              "postgresql-jsoncdc:10.1")
+              "postgres-jsoncdc:10.1")
     (Thread/sleep startup-ms)))
 
 (defn do-stop-db
