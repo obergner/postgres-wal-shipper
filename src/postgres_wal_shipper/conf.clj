@@ -2,10 +2,14 @@
   (:require [environ.core :refer [env]]
             [mount.core :as mount]))
 
-(defn config
+(defn load-config
   "Read application configuration from environment variables and return it as a hash."
   []
-  {:kafka-hosts (env :kafka-hosts)
-   :management-api-port (read-string (env :management-api-port))})
+  {:kafka {:hosts (env :kafka-hosts)}
+   :postgres {:dbtype "postgresql"
+              :dbname (env :postgres-dbname)
+              :user (env :postgres-user)
+              :password (env :postgres-password)}
+   :management-api {:port (read-string (env :management-api-port))}})
 
-(mount/defstate conf :start (config))
+(mount/defstate config :start (load-config))

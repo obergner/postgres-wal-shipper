@@ -56,5 +56,5 @@
   [app])
 
 (mount/defstate app
-  :start (start-app conf/conf mapi/management-api)
+  :start (start-app conf/config mapi/management-api)
   :stop (stop-app app))

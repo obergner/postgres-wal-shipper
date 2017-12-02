@@ -8,9 +8,9 @@
 
 (t/deftest start-stop-management-api
   (t/testing "that /health endpoint returns 200/OK"
-    (let [config {:management-api-port 34567}
+    (let [config {:port 34567}
           server (#'sut/start-management-api config)]
       (try
-        (t/is (= 200 (:status (http/get (format "http://localhost:%d/health" (:management-api-port config))))))
+        (t/is (= 200 (:status (http/get (format "http://localhost:%d/health" (:port config))))))
         (finally
           (#'sut/stop-management-api server))))))

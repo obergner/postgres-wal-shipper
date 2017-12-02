@@ -36,9 +36,9 @@
 (defn- ^Server start-management-api
   "Start an embedded `Jetty` instance serving our management API, using the `config` hash to configure port and access
   to resources. Return an `org.eclipse.jetty.server.Server` instance that may be stopped by calling `.stop` on it."
-  [{:keys [management-api-port], :as config}]
-  (log/infof "Starting management API on port [%s], using config [%s] ..." management-api-port config)
-  (let [management-api (jetty/run-jetty (management-api-app config) {:port management-api-port :join? false})]
+  [{:keys [port], :as config}]
+  (log/infof "Starting management API on port [%s], using config [%s] ..." port config)
+  (let [management-api (jetty/run-jetty (management-api-app config) {:port port :join? false})]
     management-api))
 
 (defn- stop-management-api
@@ -48,5 +48,5 @@
   (.stop server))
 
 (mount/defstate management-api
-  :start (start-management-api conf/conf)
+  :start (start-management-api (:management-api conf/config))
   :stop (stop-management-api management-api))

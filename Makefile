@@ -9,8 +9,14 @@ APP_NAME := "postgres-wal-shipper"
 # Grep version from project.clj
 VERSION := $(shell ./version.sh)
 
-# Read our secret Postgres password from profiles.clj
-POSTGRES_PASSWORD := $(shell cat profiles.clj | sed -n 's/.*:postgres-password "\(.*\)".*/\1/p')
+# Read our secret Postgres password from project.clj
+POSTGRES_PASSWORD := $(shell cat project.clj | sed -n 's/.*:dbpassword "\(.*\)".*/\1/p')
+
+# Where Postgresql stores its data
+POSTGRES_DBDIR := $(DIR)/target/data
+
+# Our custom Postgresql configuration, activating logical replication
+POSTGRES_CONF := $(DIR)/conf/postgres/postgresql.conf
 
 # Default goal 
 .DEFAULT_GOAL := build
@@ -61,13 +67,27 @@ stop: ## Stop and remove a running container
 
 # Start/stop Postgresql DB
 
-start-pg:
-	@docker run -i -t --rm \
-          -v $(DIR)/data:/var/lib/postgresql/data \
+$(POSTGRES_DBDIR):
+	@mkdir -p $(POSTGRES_DBDIR)
+
+start-pg: $(POSTGRES_DBDIR)
+	@docker run --rm \
+          --detach \
+          --volume=$(POSTGRES_CONF):/etc/postgresql.conf \
+          --volume=$(POSTGRES_DBDIR):/var/lib/postgresql/data \
 					--env-file=./config.env \
 					--env=POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+          --publish=5432:5432 \
           --name=postgres-wal-shipper-db \
-          postgres:10.1-alpine
+          postgres:10.1-alpine \
+          -c config_file=/etc/postgresql.conf
+
+stop-pg: 
+	@docker stop postgres-wal-shipper-db
+	@rm -rf $(POSTGRES_DBDIR)
+
+login-pg: 
+	@docker exec -t -i postgres-wal-shipper-db /bin/sh
 
 # HELPERS
 
