@@ -7,16 +7,12 @@ DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 APP_NAME := "postgres-wal-shipper"
 
 # Grep version from project.clj
-VERSION := $(shell ./version.sh)
+APP_VERSION := $(shell ./version.sh)
 
 # Read our secret Postgres password from project.clj
-POSTGRES_PASSWORD := $(shell cat project.clj | sed -n 's/.*:dbpassword "\(.*\)".*/\1/p')
+PG_PASSWORD := $(shell cat project.clj | sed -n 's/.*:dbpassword "\(.*\)".*/\1/p')
 
-# Where Postgresql stores its data
-POSTGRES_DBDIR := $(DIR)/target/data
-
-# Our custom Postgresql configuration, activating logical replication
-POSTGRES_CONF := $(DIR)/conf/postgres/postgresql.conf
+PG_CONTAINER_NAME := "postgres-wal-shipper-db"
 
 # Default goal 
 .DEFAULT_GOAL := build
@@ -46,19 +42,19 @@ doc:
 # Build the container
 image: package
 	@docker build \
-         --build-arg version=$(VERSION) \
+         --build-arg version=$(APP_VERSION) \
          --build-arg managementApiPort=$(MANAGEMENT_API_PORT) \
-         -t $(APP_NAME):$(VERSION) .
+         -t $(APP_NAME):$(APP_VERSION) .
 
 # Build the container
-build: test container
+build: test image
 
 run: ## Run container
 	@docker run -i -t --rm \
          --env-file=./config.env \
          --publish=$(MANAGEMENT_API_PORT):$(MANAGEMENT_API_PORT) \
          --name="$(APP_NAME)" \
-         $(APP_NAME):$(VERSION)
+         $(APP_NAME):$(APP_VERSION)
 
 up: build run ## Run container on port configured in `config.env` (Alias to run)
 
@@ -67,29 +63,30 @@ stop: ## Stop and remove a running container
 
 # Start/stop Postgresql DB
 
-$(POSTGRES_DBDIR):
-	@mkdir -p $(POSTGRES_DBDIR)
-
-start-pg: $(POSTGRES_DBDIR)
+start-db: 
 	@docker run --rm \
           --detach \
-          --volume=$(POSTGRES_CONF):/etc/postgresql.conf \
-          --volume=$(POSTGRES_DBDIR):/var/lib/postgresql/data \
 					--env-file=./config.env \
-					--env=POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+					--env=POSTGRES_PASSWORD=$(PG_PASSWORD) \
           --publish=5432:5432 \
-          --name=postgres-wal-shipper-db \
-          postgres:10.1-alpine \
-          -c config_file=/etc/postgresql.conf
+          --name=$(PG_CONTAINER_NAME) \
+          postgresql-jsoncdc:10.1
 
-stop-pg: 
-	@docker stop postgres-wal-shipper-db
-	@rm -rf $(POSTGRES_DBDIR)
+start-db-foreground: 
+	@docker run -i -t --rm \
+					--env-file=./config.env \
+					--env=POSTGRES_PASSWORD=$(PG_PASSWORD) \
+          --publish=5432:5432 \
+          --name=$(PG_CONTAINER_NAME) \
+          postgresql-jsoncdc:10.1
 
-login-pg: 
-	@docker exec -t -i postgres-wal-shipper-db /bin/sh
+stop-db: 
+	@docker stop $(PG_CONTAINER_NAME)
+
+login-db: 
+	@docker exec -t -i $(PG_CONTAINER_NAME) /bin/sh
 
 # HELPERS
 
 version: ## Output the current version
-	@echo $(VERSION)
+	@echo $(APP_VERSION)

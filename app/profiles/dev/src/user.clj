@@ -63,31 +63,25 @@ Enjoy
 
 (defn do-start-db
   [dbconf]
-  (let [work-dir (.getCanonicalPath (io/file "."))
-        startup-ms 5000]
+  (let [startup-ms 5000]
     (log/infof "START: Postgresql Docker container using [%s] - waiting for [%d] ms for the container to start ..."
                dbconf startup-ms)
-    (shell/sh "mkdir" "-p" "./target/data")
     (shell/sh "docker"
               "run"
               "--detach"
               "--rm"
-              (format "--volume=%s/conf/postgres/postgresql.conf:/etc/postgresql.conf" (.getCanonicalPath (io/file ".")))
-              (format "--volume=%s/target/data:/var/lib/postgresql/data" (.getCanonicalPath (io/file ".")))
               (format "--env=POSTGRES_DB=%s" (:dbname dbconf))
               (format "--env=POSTGRES_USER=%s" (:user dbconf))
               (format "--env=POSTGRES_PASSWORD=%s" (:password dbconf))
               "--publish=5432:5432"
-              "--name=postgres-walshipper-db"
-              "postgres:10.1-alpine"
-              "-c" "config_file=/etc/postgresql.conf")
+              "--name=postgres-wal-shipper-db"
+              "postgresql-jsoncdc:10.1")
     (Thread/sleep startup-ms)))
 
 (defn do-stop-db
   []
   (log/infof "STOP: Postgresql Docker container ...")
-  (shell/sh "docker" "stop" "postgres-walshipper-db")
-  (shell/sh "rm" "-rf" "./target/data"))
+  (shell/sh "docker" "stop" "postgres-wal-shipper-db"))
 
 (mount/defstate db
   :start (do-start-db (:postgres conf/config))

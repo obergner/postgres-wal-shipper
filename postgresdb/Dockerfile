@@ -26,5 +26,6 @@ RUN apt-get update \
   && apt autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
-COPY conf/postgresql.conf /var/lib/postgresql/data/postgresql.conf
+COPY conf/postgresql.conf /src/postgresql.conf
+COPY scripts/configure.sh /docker-entrypoint-initdb.d/configure.sh
 
