@@ -41,7 +41,6 @@
         (jdbc/query dbconfig
                     ["SELECT COUNT(*) AS count FROM pg_replication_slots WHERE slot_name = ? and slot_type ='logical'" slot-name]
                     {:result-set-fn first})]
-    (log/infof "COUNT: %s" count)
     (= 1 count)))
 
 (defn- register-replication-slot
@@ -70,13 +69,13 @@
 
 (defn- ^String read-replication-message
   [^PGReplicationStream replication-stream]
-  (log/debugf "Reading next replication message from [%s] ..." replication-stream)
+  (log/infof "Reading next replication message from [%s] ..." replication-stream)
   (let [msg (.read replication-stream)
         offset (.arrayOffset msg)
         payload (.array msg)
         length (- (alength payload) offset)
         decoded (String. payload offset length)]
-    (log/debugf "Decoded replication message [%s]" decoded)
+    (log/infof "Decoded replication message [%s]" decoded)
     decoded))
 
 (defn- run-replication-client

@@ -79,13 +79,15 @@ Enjoy
     (loop []
       (if (> (- (System/currentTimeMillis) start-time) timeout-ms)
         (throw (Exception. "Waiting for DB to come up timed out"))
-        (when-not (connected?)
-          (Thread/sleep 100)
-          (recur))))))
+        (if (connected?)
+          (log/infof "DB started to respond after waiting for [%d] ms" (- (System/currentTimeMillis) start-time))
+          (do
+            (Thread/sleep 100)
+            (recur)))))))
 
 (defn do-start-db
   [dbconf]
-  (let [startup-ms 6000]
+  (let [startup-ms 10000]
     (log/infof "START: Postgresql Docker container using [%s] - waiting for up to [%d] ms for the container to start ..."
                dbconf startup-ms)
     (shell/sh "docker"
