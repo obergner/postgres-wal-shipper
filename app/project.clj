@@ -21,6 +21,7 @@
                  [ring-logger "0.7.7"]
                  [org.clojure/tools.logging "0.4.0"]
                  [org.slf4j/slf4j-api "1.7.25"]
+                 [org.slf4j/jul-to-slf4j "1.7.25"]
                  [ch.qos.logback/logback-classic "1.2.3"]]
   :main ^:skip-aot postgres-wal-shipper.core
   :target-path "target/%s"

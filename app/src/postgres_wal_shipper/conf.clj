@@ -1,5 +1,6 @@
 (ns postgres-wal-shipper.conf
   (:require [environ.core :refer [env]]
+            [postgres-wal-shipper.conf :as conf]
             [mount.core :as mount]))
 
 (defn load-config

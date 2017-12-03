@@ -1,6 +1,7 @@
 (ns postgres-wal-shipper.replication-client
   (:require [postgres-wal-shipper.conf :as conf]
             [clojure.core.async :as async]
+            [clojure.java.jdbc :as jdbc]
             [clojure.tools.logging :as log]
             [mount.core :as mount])
   (:import (java.sql DriverManager)
@@ -34,6 +35,15 @@
     (-> (DriverManager/getConnection conn-string props)
         (.unwrap PGConnection))))
 
+(defn- replication-slot-exists?
+  [slot-name dbconfig]
+  (let [{:keys [count]}
+        (jdbc/query dbconfig
+                    ["SELECT COUNT(*) AS count FROM pg_replication_slots WHERE slot_name = ? and slot_type ='logical'" slot-name]
+                    {:result-set-fn first})]
+    (log/infof "COUNT: %s" count)
+    (= 1 count)))
+
 (defn- register-replication-slot
   "Register a logical `replication slot` in our database, later to be used by our `replication stream`. Supplied
   `replication-connection` will be used to register our replication slot, which will be called `slot-name` and will use
@@ -60,34 +70,37 @@
 
 (defn- ^String read-replication-message
   [^PGReplicationStream replication-stream]
-  (log/infof "Reading next replication message from [%s] ..." replication-stream)
-  (try
-    (let [msg (.read replication-stream)
-          offset (.arrayOffset msg)
-          payload (.array msg)
-          length (- (.length payload) offset)
-          decoded (String. payload offset length)]
-      (log/infof "Decoded replication message [%s]" decoded)
-      decoded)
-    (catch Exception e
-      (log/errorf e "Caught exception trying to read next replication message: %s" (.getMessage e))
-      nil)))
+  (log/debugf "Reading next replication message from [%s] ..." replication-stream)
+  (let [msg (.read replication-stream)
+        offset (.arrayOffset msg)
+        payload (.array msg)
+        length (- (alength payload) offset)
+        decoded (String. payload offset length)]
+    (log/debugf "Decoded replication message [%s]" decoded)
+    decoded))
 
 (defn- run-replication-client
   [^PGReplicationStream replication-stream on-message-cb]
   (let [should-run (atom true)
         ^Executor exec (Executors/fixedExecutor 1)]
     (.execute exec
-              #(while @should-run
-                 (let [replication-message (read-replication-message replication-stream)]
-                   (on-message-cb replication-message))))
+              (fn []
+                (while @should-run
+                  (try
+                    (let [replication-message (read-replication-message replication-stream)]
+                      (on-message-cb replication-message))
+                    (catch java.lang.InterruptedException ire
+                      (log/infof "Caught InterruptedException - terminating ..."))))
+                (log/infof "Received stop signal - will terminate replication client on replication stream [%s]"
+                           replication-stream)))
     [should-run exec]))
 
 (defn- start-replication-client
   [{:keys [output-plugin], :as dbconfig} on-message-cb]
   (let [slot-name "test_slot"
         pgconn (get-replication-connection dbconfig)]
-    (register-replication-slot pgconn slot-name output-plugin)
+    (when-not (replication-slot-exists? slot-name dbconfig)
+      (register-replication-slot pgconn slot-name output-plugin))
     (let [replication-stream (start-replication-stream pgconn slot-name)]
       (run-replication-client replication-stream on-message-cb))))
 

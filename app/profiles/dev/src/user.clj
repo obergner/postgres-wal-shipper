@@ -11,7 +11,15 @@
             [clojure.java.shell :as shell]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async])
+  (:import [java.net Socket InetSocketAddress]
+           [java.util.logging LogManager]
+           [org.slf4j.bridge SLF4JBridgeHandler]))
+
+(-> (LogManager/getLogManager)
+    (.reset))
+(SLF4JBridgeHandler/removeHandlersForRootLogger)
+(SLF4JBridgeHandler/install)
 
 (mu/on-upndown :info mu/log :before)
 
@@ -27,9 +35,6 @@ might find useful:
      stop Postges WAL Shipper, taking care to stop all subsystems in reverse startup order
  * (restart):
      stop, then start again
- * (schedule interval-ms org repo last):
-     schedule importing last `last` pull requests from GitHub repository `org`/`repo`
-     every `interval-ms` milliseconds
  * (check-health):
      call Postges WAL Shipper's /health endpoint
 
@@ -61,10 +66,27 @@ Enjoy
 
 ;; Starting and stopping Postgresql Docker container
 
+(defn wait-for-db
+  [dbconf timeout-ms]
+  (let [address (InetSocketAddress. (:host dbconf) (:port dbconf))
+        start-time (System/currentTimeMillis)
+        connected? (fn []
+                     (try
+                       (jdbc/query dbconf ["SELECT 1"])
+                       true
+                       (catch Exception e
+                         false)))]
+    (loop []
+      (if (> (- (System/currentTimeMillis) start-time) timeout-ms)
+        (throw (Exception. "Waiting for DB to come up timed out"))
+        (when-not (connected?)
+          (Thread/sleep 100)
+          (recur))))))
+
 (defn do-start-db
   [dbconf]
   (let [startup-ms 6000]
-    (log/infof "START: Postgresql Docker container using [%s] - waiting for [%d] ms for the container to start ..."
+    (log/infof "START: Postgresql Docker container using [%s] - waiting for up to [%d] ms for the container to start ..."
                dbconf startup-ms)
     (shell/sh "docker"
               "run"
@@ -76,7 +98,7 @@ Enjoy
               "--publish=5432:5432"
               "--name=postgres-wal-shipper-db"
               "postgres-jsoncdc:10.1")
-    (Thread/sleep startup-ms)))
+    (wait-for-db dbconf startup-ms)))
 
 (defn do-stop-db
   []
