@@ -6,6 +6,7 @@
             [clj-http.client :as http]
             [mount.core :as mount]
             [mount-up.core :as mu]
+            [clojure.string :as str]
             [clojure.java.jdbc :as jdbc]
             [clojure.pprint :as p]
             [clojure.java.shell :as shell]
@@ -171,3 +172,42 @@ Enjoy
 (defn show-state-table
   []
   (p/pprint (jdbc/query (:postgres conf/config) ["SELECT * FROM state"])))
+
+;; Starting and stopping Kafka Docker container
+
+(defn do-start-kafka
+  [kafkaconfig]
+  (let [brokers (:brokers kafkaconfig)
+        broker (-> (str/split brokers #",")
+                   (first))
+        port (-> broker
+                 (str/split #":")
+                 (second))
+        advertised-listeners (format "PLAINTEXT://%s" broker)]
+    (log/infof "START: Kafka Docker container using [broker:%s] ..." broker)
+    (shell/sh "docker"
+              "run"
+              "--detach"
+              "--rm"
+              (format "--env=ADVERTISED_LISTENERS=%s" advertised-listeners)
+              (format "--publish=%s:%s" port port)
+              "--publish=2181:2181"
+              "--name=kafka-single-node"
+              "kafka-single-node:1.0.0")))
+
+(defn do-stop-kafka
+  []
+  (log/infof "STOP: Kafka Docker container ...")
+  (shell/sh "docker" "stop" "kafka-single-node"))
+
+(mount/defstate kafka
+  :start (do-start-kafka (:kafka conf/config))
+  :stop (do-stop-kafka))
+
+(defn start-kafka
+  []
+  (mount/start #'conf/config #'kafka))
+
+(defn stop-kafka
+  []
+  (mount/stop #'kafka))

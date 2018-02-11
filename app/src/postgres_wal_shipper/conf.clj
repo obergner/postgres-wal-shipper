@@ -6,7 +6,7 @@
 (defn load-config
   "Read application configuration from environment variables and return it as a hash."
   []
-  {:kafka {:hosts (env :kafka-hosts)}
+  {:kafka {:brokers (env :kafka-brokers)}
    :postgres {:dbtype "postgresql"
               :dbname (env :postgres-dbname)
               :user (env :postgres-user)

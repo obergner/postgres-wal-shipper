@@ -5,7 +5,7 @@
 
 (t/deftest load-config
   (t/testing "that config correctly reads configuration from environment variables"
-    (let [exp-kafka-hosts (env/env :kafka-hosts)
+    (let [exp-kafka-brokers (env/env :kafka-brokers)
           exp-postgres-dbname (env/env :postgres-dbname)
           exp-postgres-user (env/env :postgres-user)
           exp-postgres-password (env/env :postgres-password)
@@ -14,7 +14,7 @@
           exp-postgres-output-plugin (env/env :postgres-output-plugin)
           exp-management-api-port (read-string (env/env :management-api-port))
           actual-config (sut/load-config)]
-      (t/is (= exp-kafka-hosts (get-in actual-config [:kafka :hosts])))
+      (t/is (= exp-kafka-brokers (get-in actual-config [:kafka :brokers])))
       (t/is (= exp-postgres-dbname (get-in actual-config [:postgres :dbname])))
       (t/is (= exp-postgres-user (get-in actual-config [:postgres :user])))
       (t/is (= exp-postgres-password (get-in actual-config [:postgres :password])))

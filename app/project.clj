@@ -13,6 +13,7 @@
                  [environ "1.1.0"]
                  [org.clojure/java.jdbc "0.7.3"]
                  [org.postgresql/postgresql "42.1.4"]
+                 [org.apache.kafka/kafka-clients "1.0.0"]
                  [io.aleph/dirigiste "0.1.5"]
                  [compojure "1.6.0"]
                  [ring/ring-core "1.6.3"]
@@ -38,7 +39,7 @@
         :postgres-host "localhost"
         :postgres-port "5432"
         :postgres-output-plugin "jsoncdc"
-        :kafka-hosts "localhost"
+        :kafka-brokers "localhost:9092"
         :management-api-port "3100"}
   :profiles {:dev {:source-paths ["profiles/dev/src"]
                    :resource-paths ["profiles/dev/resources"]
@@ -54,7 +55,7 @@
                          :postgres-host "localhost"
                          :postgres-port "5432"
                          :postgres-output-plugin "jsoncdc"
-                         :kafka-hosts "localhost"
+                         :kafka-brokers "localhost:9092"
                          :management-api-port "2200"}}
              :test {:resource-paths ["test-resources"]}
              :uberjar {:aot :all}}
